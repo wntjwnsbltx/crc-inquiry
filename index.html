@@ -1,133 +1,246 @@
-// 备注：这个文件可以直接另存为 index.html 按照指南上传
-import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle2, AlertTriangle, Search, Info, ShieldCheck } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mycron CRC Inquiry Intelligence</title>
+    <!-- 引入 Tailwind CSS 用于样式 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 核心库 -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- 引入 Babel 用于解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- 引入 Lucide 图标库 -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
 
-const App = () => {
-  const historyData = [
-    { grade: 'SPCC-SD', t_min: 0.28, t_max: 2.20, w_min: 1000, w_max: 1250 },
-    { grade: 'SPCD', t_min: 0.70, t_max: 1.05, w_min: 1100, w_max: 1219 },
-    { grade: 'S50C', t_min: 0.90, t_max: 2.80, w_min: 700, w_max: 880 },
-    { grade: 'SPCC-1B', t_min: 0.18, t_max: 0.40, w_min: 800, w_max: 950 },
-  ];
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-  const [input, setInput] = useState({ grade: 'SPCC-SD', width: 1100, thickness: 0.279 });
-  const [assessment, setAssessment] = useState({ level: '', message: '', color: '', icon: null });
-  const [showCredit, setShowCredit] = useState(false); // 控制隐藏署名的显示
+        // 图标组件适配器
+        const Icon = ({ name, className }) => {
+            const [iconHtml, setIconHtml] = React.useState('');
+            React.useEffect(() => {
+                const icon = lucide.createIcons({
+                    icons: { [name]: true },
+                    attrs: { class: className }
+                });
+            }, [name, className]);
+            return <i data-lucide={name} className={className}></i>;
+        };
 
-  useEffect(() => {
-    const spec = historyData.find(d => d.grade === input.grade);
-    if (!spec) return;
-    const tw = parseFloat(input.width) || 0;
-    const tt = parseFloat(input.thickness) || 0;
-    
-    const w_ok = tw >= spec.w_min && tw <= spec.w_max;
-    const t_ok = tt >= spec.t_min && tt <= spec.t_max;
-    const w_med = (tw >= spec.w_min * 0.98 && tw < spec.w_min) || (tw > spec.w_max && tw <= spec.w_max * 1.02);
-    const t_med = (tt >= spec.t_min * 0.98 && tt < spec.t_min) || (tt > spec.t_max && tt <= spec.t_max * 1.02);
+        const App = () => {
+            // 模拟数据集 (Mycron CRC Spec History)
+            const historyData = [
+                { grade: 'SPCC-SD', t_min: 0.28, t_max: 2.20, w_min: 1000, w_max: 1250 },
+                { grade: 'SPCD', t_min: 0.70, t_max: 1.05, w_min: 1100, w_max: 1219 },
+                { grade: 'S50C', t_min: 0.90, t_max: 2.80, w_min: 700, w_max: 880 },
+                { grade: 'SPCC-1B', t_min: 0.18, t_max: 0.40, w_min: 800, w_max: 950 },
+            ];
 
-    if (w_ok && t_ok) {
-      setAssessment({
-        level: 'PROVEN: LOW RISK',
-        message: 'Standard production specification with valid history.',
-        color: 'bg-green-600',
-        icon: <CheckCircle2 className="w-8 h-8 text-white/80" />
-      });
-    } else if ((w_ok && t_med) || (t_ok && w_med)) {
-      setAssessment({
-        level: 'TRIAL: MED RISK',
-        message: `Boundary case (${t_med ? 'Thickness' : 'Width'}). HOD Technical review recommended.`,
-        color: 'bg-amber-500',
-        icon: <AlertTriangle className="w-8 h-8 text-white/80" />
-      });
-    } else {
-      setAssessment({
-        level: 'LIMIT: HIGH RISK',
-        message: 'Specification exceeds 2% engineering safety buffer.',
-        color: 'bg-red-600',
-        icon: <AlertCircle className="w-8 h-8 text-white/80" />
-      });
-    }
-  }, [input]);
+            const [input, setInput] = useState({
+                grade: 'SPCC-SD',
+                width: 1100,
+                thickness: 0.279
+            });
 
-  return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 select-none">
-      {/* 隐形署名触发器：点击顶部标题 5 次才会显示署名 */}
-      <div className="max-w-md mx-auto p-6 pt-10">
-        <header className="mb-8" onClick={() => setShowCredit(!showCredit)}>
-          <h1 className="text-2xl font-black tracking-tighter text-slate-800">CRC INQUIRY</h1>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Feasibility Intelligence</p>
-        </header>
+            const [assessment, setAssessment] = useState({
+                level: 'LOW',
+                message: '',
+                color: 'bg-green-600',
+                textColor: 'text-green-50',
+                borderColor: 'border-green-200',
+                iconName: 'check-circle-2'
+            });
 
-        <main className="space-y-6">
-          {/* 输入控制台 */}
-          <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
-            <div className="space-y-5">
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Steel Grade</label>
-                <select 
-                  className="w-full bg-slate-100 p-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
-                  value={input.grade}
-                  onChange={(e) => setInput({...input, grade: e.target.value})}
-                >
-                  {historyData.map(d => <option key={d.grade} value={d.grade}>{d.grade}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Width (mm)</label>
-                  <input 
-                    type="number" 
-                    className="w-full bg-slate-100 p-4 rounded-2xl font-bold outline-none"
-                    value={input.width}
-                    onChange={(e) => setInput({...input, width: e.target.value})}
-                  />
+            useEffect(() => {
+                const spec = historyData.find(d => d.grade === input.grade);
+                if (!spec) return;
+
+                const { t_min, t_max, w_min, w_max } = spec;
+                const tw = parseFloat(input.width) || 0;
+                const tt = parseFloat(input.thickness) || 0;
+
+                const w_ok = tw >= w_min && tw <= w_max;
+                const t_ok = tt >= t_min && tt <= t_max;
+                const w_med = (tw >= w_min * 0.98 && tw < w_min) || (tw > w_max && tw <= w_max * 1.02);
+                const t_med = (tt >= t_min * 0.98 && tt < t_min) || (tt > t_max && tt <= t_max * 1.02);
+
+                if (w_ok && t_ok) {
+                    setAssessment({
+                        level: 'LOW RISK',
+                        message: 'PROVEN SPEC: This specification has direct historical production records. Standard pricing applies.',
+                        color: 'bg-green-600',
+                        textColor: 'text-green-50',
+                        borderColor: 'border-green-200',
+                        iconName: 'check-circle-2'
+                    });
+                } else if ((w_ok && t_med) || (t_ok && w_med)) {
+                    setAssessment({
+                        level: 'MEDIUM RISK',
+                        message: `TRIAL REQUIRED: Marginal deviation detected (${t_med ? 'Thickness' : 'Width'}).  Further discussion needed.`,
+                        color: 'bg-amber-500',
+                        textColor: 'text-amber-50',
+                        borderColor: 'border-amber-200',
+                        iconName: 'alert-triangle'
+                    });
+                } else {
+                    setAssessment({
+                        level: 'HIGH RISK / OUT OF SCOPE',
+                        message: 'BEYOND CAPABILITY: Specification exceeds the validated engineering envelope (2% threshold). Significant quality risk or physical limitation.',
+                        color: 'bg-red-600',
+                        textColor: 'text-red-50',
+                        borderColor: 'border-red-200',
+                        iconName: 'alert-circle'
+                    });
+                }
+                
+                // 触发图标重新渲染
+                setTimeout(() => lucide.createIcons(), 10);
+            }, [input]);
+
+            const currentSpec = historyData.find(d => d.grade === input.grade);
+
+            return (
+                <div className="min-h-screen p-4 md:p-8">
+                    <div className="max-w-5xl mx-auto">
+                        {/* Header */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-slate-200 pb-6">
+                            <div>
+                                <h1 className="text-2xl font-black text-slate-900 tracking-tight">CRC Inquiry </h1>
+                                <p className="text-slate-500 text-sm font-medium">Decision support tool</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-black self-center tracking-wider">MYCRON SPEC V0.0</span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            
+                            {/* Left: Input Console */}
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center">
+                                        <Icon name="search" className="w-4 h-4 mr-2" /> Inquiry Input
+                                    </h2>
+                                    
+                                    <div className="space-y-5">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Select Grade</label>
+                                            <select 
+                                                value={input.grade}
+                                                onChange={(e) => setInput({...input, grade: e.target.value})}
+                                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-slate-700"
+                                            >
+                                                {historyData.map(d => <option key={d.grade} value={d.grade}>{d.grade}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Target Width (mm)</label>
+                                            <input 
+                                                type="number"
+                                                value={input.width}
+                                                onChange={(e) => setInput({...input, width: e.target.value})}
+                                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-slate-700"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Target Thickness (mm)</label>
+                                            <input 
+                                                type="number"
+                                                step="0.001"
+                                                value={input.thickness}
+                                                onChange={(e) => setInput({...input, thickness: e.target.value})}
+                                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-slate-700"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-900 p-6 rounded-3xl text-slate-100 shadow-xl shadow-slate-200">
+                                   <div className="flex items-center mb-3 text-blue-400">
+                                     <Icon name="info" className="w-5 h-5 mr-2" />
+                                     <span className="font-black text-xs uppercase tracking-widest">Tip</span>
+                                   </div>
+                                   <p className="text-xs leading-relaxed opacity-70 font-medium">
+                                     content xxxx here.
+                                   </p>
+                                </div>
+                            </div>
+
+                            {/* Right: Results */}
+                            <div className="lg:col-span-8 space-y-6">
+                                
+                                {/* Main Result Card */}
+                                <div className={`p-8 rounded-[2rem] shadow-2xl transition-all duration-500 border-b-[12px] ${assessment.color} ${assessment.textColor} ${assessment.borderColor}`}>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-70 mb-2">Assessment Level</p>
+                                            <h2 className="text-4xl font-black tracking-tight">{assessment.level}</h2>
+                                        </div>
+                                        <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-md">
+                                            <Icon name={assessment.iconName} className="w-10 h-10" />
+                                        </div>
+                                    </div>
+                                    <p className="text-lg font-semibold leading-relaxed max-w-2xl opacity-90">
+                                        {assessment.message}
+                                    </p>
+                                </div>
+
+                                {/* Quick Stats Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                                        <p className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.2em]">Historical Thickness (mm)</p>
+                                        <div className="flex justify-between items-end">
+                                            <div className="text-center">
+                                                <span className="block text-[8px] text-slate-300 font-black uppercase">Min</span>
+                                                <span className="text-2xl font-black text-slate-700">{currentSpec.t_min}</span>
+                                            </div>
+                                            <div className="h-2 flex-1 bg-slate-100 mx-4 mb-2 relative rounded-full overflow-hidden">
+                                                <div className="absolute bg-blue-500 h-full w-2/3 left-1/4 rounded-full"></div>
+                                            </div>
+                                            <div className="text-center">
+                                                <span className="block text-[8px] text-slate-300 font-black uppercase">Max</span>
+                                                <span className="text-2xl font-black text-slate-700">{currentSpec.t_max}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                                        <p className="text-[10px] font-black text-slate-400 mb-4 uppercase tracking-[0.2em]">Historical Width (mm)</p>
+                                        <div className="flex justify-between items-end">
+                                            <div className="text-center">
+                                                <span className="block text-[8px] text-slate-300 font-black uppercase">Min</span>
+                                                <span className="text-2xl font-black text-slate-700">{currentSpec.w_min}</span>
+                                            </div>
+                                            <div className="h-2 flex-1 bg-slate-100 mx-4 mb-2 relative rounded-full overflow-hidden">
+                                                <div className="absolute bg-indigo-500 h-full w-3/4 left-1/6 rounded-full"></div>
+                                            </div>
+                                            <div className="text-center">
+                                                <span className="block text-[8px] text-slate-300 font-black uppercase">Max</span>
+                                                <span className="text-2xl font-black text-slate-700">{currentSpec.w_max}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Thick (mm)</label>
-                  <input 
-                    type="number" 
-                    step="0.001"
-                    className="w-full bg-slate-100 p-4 rounded-2xl font-bold outline-none"
-                    value={input.thickness}
-                    onChange={(e) => setInput({...input, thickness: e.target.value})}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
+            );
+        };
 
-          {/* 结果显示卡片 */}
-          <section className={`${assessment.color} rounded-[2.5rem] p-8 text-white shadow-xl shadow-slate-200 transition-all duration-500`}>
-            <div className="flex justify-between items-start mb-6">
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Result Assessment</span>
-              {assessment.icon}
-            </div>
-            <h2 className="text-3xl font-black mb-2 leading-none">{assessment.level}</h2>
-            <p className="text-sm font-medium opacity-80 leading-relaxed">{assessment.message}</p>
-          </section>
-
-          {/* 底部备注 */}
-          <footer className="text-center px-6">
-            <div className="flex justify-center items-center space-x-2 text-slate-300 mb-4">
-              <ShieldCheck size={14} />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Confidential Internal Use Only</span>
-            </div>
-            
-            {/* 隐藏的署名：平时不可见，只有点击 header 触发 */}
-            {showCredit && (
-              <div className="bg-slate-200/50 p-4 rounded-2xl animate-pulse">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-loose">
-                  Designed and Developed by<br/>
-                  <span className="text-slate-600">Lim Xin Yi</span><br/>
-                  Released on 01 Feb 2025
-                </p>
-              </div>
-            )}
-          </footer>
-        </main>
-      </div>
-    </div>
-  );
-};
-
-export default App;
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
